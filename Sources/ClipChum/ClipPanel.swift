@@ -43,8 +43,9 @@ final class ClipPanelController {
             panel.standardWindowButton(button)?.isHidden = true
         }
         let hosting = NSHostingView(rootView: ClipListView(model: model))
-        hosting.frame = NSRect(origin: .zero, size: size)
+        hosting.autoresizingMask = [.width, .height]
         panel.contentView = hosting
+        panel.setContentSize(size)
     }
 
     /// Show under `anchor` (status item frame in screen coordinates) or near the mouse.
@@ -62,6 +63,7 @@ final class ClipPanelController {
         guard panel.isVisible else { return }
         removeMonitors()
         panel.orderOut(nil)
+        model.panelDidHide()
         lastHide = Date()
     }
 

@@ -1,6 +1,7 @@
 import AppKit
 import ClipChumCore
 import KeyboardShortcuts
+import notify
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -14,6 +15,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: ClipPanelController!
     private var model: ClipListModel!
     private var settingsWindow: SettingsWindowController?
+    private var toggleToken: Int32 = 0
+    private var settingsToken: Int32 = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
@@ -57,6 +60,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             _ = try? ingester.collectGarbage()
         }
         observeSettings()
+
+        // Scriptable toggle, e.g. from a launcher:  notifyutil -p eu.dumontix.clipchum.toggle
+        notify_register_dispatch("eu.dumontix.clipchum.toggle", &toggleToken, DispatchQueue.main) { [weak self] _ in
+            self?.togglePanel(fromHotkey: true)
+        }
+        notify_register_dispatch("eu.dumontix.clipchum.settings", &settingsToken, DispatchQueue.main) { [weak self] _ in
+            self?.showSettings()
+        }
     }
 
     private var lastSettings: Settings?

@@ -15,7 +15,7 @@ struct ClipListView: View {
             Divider()
             footer
         }
-        .frame(width: Self.size.width, height: Self.size.height)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.regularMaterial)
         .onChange(of: model.focusToken, initial: true) { _, _ in
             DispatchQueue.main.async { searchFocused = true }
@@ -54,7 +54,7 @@ struct ClipListView: View {
                 ScrollView {
                     LazyVStack(spacing: 2) {
                         ForEach(Array(model.items.enumerated()), id: \.element.id) { index, clip in
-                            ClipRowView(clip: clip, isSelected: index == model.selectedIndex)
+                            ClipRowView(clip: clip, isSelected: index == model.selectedIndex, now: model.now)
                                 .id(clip.id)
                                 .contentShape(Rectangle())
                                 .onTapGesture { model.activate(clip) }

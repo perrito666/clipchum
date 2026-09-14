@@ -20,12 +20,15 @@ final class ClipListModel {
     /// Bumped every time the panel is shown so the search field re-takes focus.
     private(set) var focusToken: Int = 0
     var status: String?
+    /// Reference time for relative timestamps; ticks while the panel is visible.
+    private(set) var now = Date()
 
     var onDismiss: (() -> Void)?
     var onOpenSettings: (() -> Void)?
 
     @ObservationIgnored private var observer: AnyDatabaseCancellable?
     @ObservationIgnored private var statusResetTask: Task<Void, Never>?
+    @ObservationIgnored private var clock: Timer?
 
     init(store: ClipStore, blobs: BlobStore, settings: SettingsStore, paste: PasteService) {
         self.store = store
@@ -47,7 +50,17 @@ final class ClipListModel {
         selectedIndex = 0
         status = nil
         focusToken += 1
+        now = Date()
         reload()
+        clock?.invalidate()
+        clock = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.now = Date() }
+        }
+    }
+
+    func panelDidHide() {
+        clock?.invalidate()
+        clock = nil
     }
 
     func reload() {
@@ -61,6 +74,7 @@ final class ClipListModel {
             NSLog("ClipChum: reload failed \(error)")
             items = []
         }
+        now = Date()
         if items.isEmpty { selectedIndex = 0 } else { selectedIndex = min(selectedIndex, items.count - 1) }
     }
 

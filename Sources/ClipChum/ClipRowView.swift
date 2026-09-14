@@ -5,6 +5,7 @@ import SwiftUI
 struct ClipRowView: View {
     let clip: Clip
     let isSelected: Bool
+    let now: Date
 
     private static let relative: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
@@ -119,7 +120,7 @@ struct ClipRowView: View {
                     Text(AppInfo.name(for: app)).lineLimit(1)
                 }
             }
-            Text(Self.relative.localizedString(for: clip.createdAt, relativeTo: Date()))
+            Text(relativeTime)
             if let size = sizeText { Text(size) }
         }
         .font(.system(size: 10.5))
@@ -134,6 +135,12 @@ struct ClipRowView: View {
     }
 
     // MARK: - Derived
+
+    private var relativeTime: String {
+        let age = now.timeIntervalSince(clip.createdAt)
+        if age < 5 { return "just now" }
+        return Self.relative.localizedString(for: clip.createdAt, relativeTo: now)
+    }
 
     private var previewText: String {
         let t = (clip.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)

@@ -11,9 +11,24 @@ public protocol PasteboardReading {
 }
 
 extension NSPasteboard: PasteboardReading {
+    /// Every file URL on the board. Finder puts one item per file; older apps only
+    /// fill the legacy NSFilenamesPboardType list, so try both before falling back.
     public func fileURLs() -> [URL] {
-        let objects = readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]
-        return objects ?? []
+        var urls: [URL] = []
+        for item in pasteboardItems ?? [] {
+            if let s = item.string(forType: .fileURL), let url = URL(string: s), url.isFileURL {
+                urls.append(url)
+            }
+        }
+        if urls.isEmpty,
+           let names = propertyList(forType: NSPasteboard.PasteboardType("NSFilenamesPboardType")) as? [String] {
+            urls = names.map { URL(fileURLWithPath: $0) }
+        }
+        if urls.isEmpty,
+           let objects = readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] {
+            urls = objects
+        }
+        return urls
     }
 }
 

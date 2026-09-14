@@ -9,7 +9,7 @@ INSTALL_TO ?= $(HOME)/Applications/$(APP).app
 #   make run SIGN_IDENTITY="ClipChum Dev"
 SIGN_IDENTITY ?= -
 
-.PHONY: build app install run test clean
+.PHONY: build app install run test clean toggle settings
 
 build:
 	swift build -c $(CONFIG)
@@ -36,3 +36,10 @@ test:
 
 clean:
 	rm -rf .build build
+
+# Open/close the panel from a script (no Accessibility permission needed).
+toggle:
+	notifyutil -p eu.dumontix.clipchum.toggle
+
+settings:
+	notifyutil -p eu.dumontix.clipchum.settings
