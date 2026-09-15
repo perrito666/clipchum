@@ -1,5 +1,11 @@
+# SwiftPM
 .build/
-build/
-*.xcodeproj
 .swiftpm/
+
+# Packaging output
+dist/
+build/
+
+# macOS noise
 .DS_Store
+*.xcodeproj

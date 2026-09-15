@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>ClipChum</string>
 	<key>CFBundleIdentifier</key>
-	<string>eu.dumontix.clipchum</string>
+	<string>to.perri.clipchum</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -20,6 +20,12 @@
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>CFBundleIconFile</key>
+	<string>ClipChum</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>LSUIElement</key>

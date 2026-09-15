@@ -61,11 +61,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         observeSettings()
 
-        // Scriptable toggle, e.g. from a launcher:  notifyutil -p eu.dumontix.clipchum.toggle
-        notify_register_dispatch("eu.dumontix.clipchum.toggle", &toggleToken, DispatchQueue.main) { [weak self] _ in
+        // Scriptable toggle, e.g. from a launcher:  notifyutil -p to.perri.clipchum.toggle
+        notify_register_dispatch("to.perri.clipchum.toggle", &toggleToken, DispatchQueue.main) { [weak self] _ in
             self?.togglePanel(fromHotkey: true)
         }
-        notify_register_dispatch("eu.dumontix.clipchum.settings", &settingsToken, DispatchQueue.main) { [weak self] _ in
+        notify_register_dispatch("to.perri.clipchum.settings", &settingsToken, DispatchQueue.main) { [weak self] _ in
             self?.showSettings()
         }
     }

@@ -37,7 +37,7 @@ public struct Settings: Codable, Equatable, Sendable {
         return s
     }
 
-    private static let defaultsKey = "eu.dumontix.clipchum.settings"
+    private static let defaultsKey = "to.perri.clipchum.settings"
 
     public static func load(from defaults: UserDefaults = .standard) -> Settings {
         guard let data = defaults.data(forKey: defaultsKey),

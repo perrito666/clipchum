@@ -23,7 +23,7 @@ public enum ParsedClip: Sendable, Equatable {
 
 public enum PasteboardParser {
     /// Marker we add to our own pasteboard writes so the monitor ignores them.
-    public static let internalMarker = NSPasteboard.PasteboardType("eu.dumontix.clipchum.internal")
+    public static let internalMarker = NSPasteboard.PasteboardType("to.perri.clipchum.internal")
 
     /// Types that password managers and similar tools use to ask managers to look away.
     public static let skipTypes: Set<String> = [

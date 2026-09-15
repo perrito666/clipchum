@@ -1,5 +1,9 @@
 import AppKit
 
+if CommandLine.arguments.contains("--smoke-test") {
+    SmokeTest.run()
+}
+
 MainActor.assumeIsolated {
     let app = NSApplication.shared
     let delegate = AppDelegate()
