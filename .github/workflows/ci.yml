@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "**.md"
+
+# Superseded runs are wasted minutes; keep only the newest per ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Third-party actions are pinned to commit SHAs (tag comments alongside):
+# a moved tag cannot inject code into this pipeline.
+#
+# Cost note: macOS minutes bill at 10x, but everything here needs AppKit,
+# so there is nothing to move to a Linux runner. One job, one checkout.
+jobs:
+  macos:
+    name: Tests, smoke test & app build (macOS)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Cache SwiftPM dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .build
+          key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+      - name: Core unit tests
+        run: make test
+      - name: Smoke test
+        run: make smoke
+      - name: Build the app bundle
+        run: make app
