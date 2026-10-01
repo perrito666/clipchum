@@ -1,5 +1,6 @@
 import AppKit
 import ClipChumCore
+import KeyboardShortcuts
 
 /// `ClipChum --smoke-test`: exercise storage, parsing and UI construction against a
 /// throwaway directory, then exit. Used by CI on a runner with no clipboard to speak of.
@@ -42,7 +43,8 @@ enum SmokeTest {
                 let board = NSPasteboard.withUniqueName()
                 defer { board.releaseGlobally() }
                 let paste = PasteService(blobs: blobs, pasteboard: board)
-                let model = ClipListModel(store: store, blobs: blobs, settings: SettingsStore(ephemeral: settings), paste: paste)
+                let settingsStore = SettingsStore(ephemeral: settings)
+                let model = ClipListModel(store: store, blobs: blobs, settings: settingsStore, paste: paste)
                 let panel = ClipPanelController(model: model)
                 precondition(model.items.count == 2, "panel model should see both clips")
                 precondition(!panel.isVisible)
@@ -54,6 +56,14 @@ enum SmokeTest {
                 precondition(board.string(forType: .string) == "aardvark lantern clip", "picked clip should be on the pasteboard")
                 precondition(model.items.map(\.kind) == [.text, .fileRef], "picked clip should move to the top")
                 precondition(model.items.count == 2, "promotion must not duplicate the clip")
+
+                // The settings window and its shortcut recorder. The recorder's labels live
+                // in KeyboardShortcuts' resource bundle; when the app cannot find that
+                // bundle the lookup traps, so this crashes for a badly packaged app.
+                let actions = SettingsActions(clearHistory: {}, storageSummary: { "" }, openStorageFolder: {})
+                let settingsWindow = SettingsWindowController(store: settingsStore, actions: actions)
+                settingsWindow.window?.layoutIfNeeded()
+                _ = KeyboardShortcuts.RecorderCocoa(for: .togglePanel)
             }
             try? FileManager.default.removeItem(at: dir)
             print("smoke test passed")

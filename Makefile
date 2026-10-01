@@ -2,7 +2,12 @@
 
 APP        := ClipChum
 CONFIG     ?= release
-BUILD_DIR  := .build/$(CONFIG)
+# The Swift Build engine, not SwiftPM's older native one: only its generated
+# resource-bundle lookup searches Contents/Resources. The native lookup tries the
+# bundle root (which cannot be code-signed) and then the absolute build path, so
+# an app built that way crashes on any machine but the one that built it.
+SWIFT_FLAGS ?= --build-system swiftbuild
+BUILD_DIR   = $(shell swift build -c $(CONFIG) $(SWIFT_FLAGS) --show-bin-path)
 BUNDLE     := dist/$(APP).app
 CONTENTS   := $(BUNDLE)/Contents
 DMG        ?= dist/$(APP).dmg
@@ -14,19 +19,19 @@ INSTALL_TO ?= $(HOME)/Applications/$(APP).app
 # Releases are signed with a Developer ID in CI (see .github/workflows/release.yml).
 SIGN_IDENTITY ?= -
 
-.PHONY: build test smoke check app dmg install run icon toggle settings clean
+.PHONY: build test smoke check app verify-app smoke-app dmg install run icon toggle settings clean
 
 build:
-	swift build -c $(CONFIG)
+	swift build -c $(CONFIG) $(SWIFT_FLAGS)
 
 ## Unit tests for the core library.
 test:
-	swift test
+	swift test $(SWIFT_FLAGS)
 
 ## Build the debug binary and run it against a throwaway store.
 smoke:
-	swift build
-	.build/debug/$(APP) --smoke-test
+	swift build $(SWIFT_FLAGS)
+	$$(swift build $(SWIFT_FLAGS) --show-bin-path)/$(APP) --smoke-test
 
 check: test smoke
 
@@ -52,6 +57,19 @@ app: build
 	rm -rf dist/$(APP).iconset
 	codesign --force --sign "$(SIGN_IDENTITY)" --timestamp=none $(BUNDLE)
 	@echo "Built $(BUNDLE)"
+
+## Smoke-test the bundle already in dist/ the way a user's machine sees it: the
+## build tree's resource bundles are hidden while it runs, so only what is inside
+## the .app counts. The release workflow runs this on the signed bundle too.
+verify-app:
+	@test -d $(BUNDLE) || { echo "No $(BUNDLE); run 'make app' first"; exit 1; }
+	@hidden=$$(mktemp -d .build/hidden.XXXXXX); \
+	  mv $(BUILD_DIR)/*.bundle $$hidden/; \
+	  $(CONTENTS)/MacOS/$(APP) --smoke-test; status=$$?; \
+	  mv $$hidden/*.bundle $(BUILD_DIR)/; rmdir $$hidden; \
+	  exit $$status
+
+smoke-app: app verify-app
 
 ## A drag-to-Applications disk image of the bundle already in dist/. Deliberately
 ## not dependent on `app`: the release workflow signs the bundle before imaging it.

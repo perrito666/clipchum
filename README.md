@@ -32,6 +32,7 @@ make run            # swift build -c release → build/ClipChum.app → ~/Applic
 make test           # swift test (core library: parser, store, ingester)
 make smoke          # build debug binary and run `ClipChum --smoke-test` against a throwaway store
 make check          # test + smoke (what CI runs)
+make smoke-app      # package dist/ClipChum.app and smoke-test it with the build tree hidden
 make app dmg        # dist/ClipChum.app, then a drag-to-Applications dist/ClipChum.dmg
 make toggle         # open/close the panel from a script (Darwin notification)
 make settings       # open the settings window from a script

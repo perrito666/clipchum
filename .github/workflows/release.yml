@@ -31,6 +31,8 @@ jobs:
     #   APPLE_TEAM_ID              the 10-character team id
     # Until then the steps skip and the zip ships unsigned.
     env:
+      # Xcode 26 for the Swift Build engine; see the Makefile and ci.yml.
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
       HAVE_SIGNING: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && (secrets.APPLE_API_KEY_P8 != '' || secrets.APPLE_APP_SPECIFIC_PASSWORD != '') }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -38,10 +40,10 @@ jobs:
       - name: Test before shipping
         run: make check
 
-      - name: Build the app bundle
+      - name: Build the app bundle and smoke-test it as installed
         # Unsigned here; the release signature (or the ad-hoc one when
         # there are no secrets) is applied below on the stamped bundle.
-        run: make app
+        run: make smoke-app
 
       - name: Stamp the tag's version into the bundle
         run: |
@@ -110,6 +112,9 @@ jobs:
       - name: Build the disk image (no signing secrets)
         if: env.HAVE_SIGNING != 'true'
         run: make dmg DMG="ClipChum-${GITHUB_REF_NAME}.dmg"
+
+      - name: Smoke-test the bundle exactly as it ships
+        run: make verify-app
 
       - name: Zip the bundle and checksum the downloads
         # ditto preserves the bundle structure and extended attributes

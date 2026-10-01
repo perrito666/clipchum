@@ -23,19 +23,23 @@ jobs:
   macos:
     name: Tests, smoke test & app build (macOS)
     runs-on: macos-15
+    # The runner's default Xcode 16 only has SwiftPM's native build system, whose
+    # resource-bundle lookup breaks the packaged app (see the Makefile).
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Cache SwiftPM dependencies
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: .build
-          key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
-          restore-keys: spm-${{ runner.os }}-
+          key: spm-xcode26-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-xcode26-${{ runner.os }}-
       - name: Core unit tests
         run: make test
       - name: Smoke test
         run: make smoke
-      - name: Build the app bundle
-        run: make app
+      - name: Build the app bundle and smoke-test it as installed
+        run: make smoke-app
       - name: Build the disk image
         run: make dmg
