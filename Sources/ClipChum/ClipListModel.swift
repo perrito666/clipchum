@@ -116,8 +116,10 @@ final class ClipListModel {
         // Re-copying moves the clip to the top; do it through the store so the
         // pasteboard monitor's dedupe path is not needed.
         if let id = clip.id {
-            try? store.dbQueue.write { db in
-                try db.execute(sql: "UPDATE clips SET createdAt = ? WHERE id = ?", arguments: [Date(), id])
+            do {
+                try store.promote(id: id)
+            } catch {
+                NSLog("ClipChum: promote failed \(error)")
             }
         }
         onDismiss?()

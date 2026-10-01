@@ -6,18 +6,21 @@ import ClipChumCore
 @MainActor
 final class PasteService {
     let blobs: BlobStore
+    /// The board clips are written to; only the smoke test swaps in a private one.
+    let pasteboard: NSPasteboard
     /// The pasteboard change count right after our last write, so the monitor can ignore it.
     private(set) var lastWrittenChangeCount: Int = -1
 
-    init(blobs: BlobStore) {
+    init(blobs: BlobStore, pasteboard: NSPasteboard = .general) {
         self.blobs = blobs
+        self.pasteboard = pasteboard
     }
 
     /// Put the clip on the pasteboard. Returns false when nothing could be written
     /// (for example a file reference whose target is gone and was never dereferenced).
     @discardableResult
     func copy(_ clip: Clip) -> Bool {
-        let pb = NSPasteboard.general
+        let pb = pasteboard
         pb.clearContents()
         let marker = NSPasteboardItem()
         marker.setData(Data(), forType: PasteboardParser.internalMarker)

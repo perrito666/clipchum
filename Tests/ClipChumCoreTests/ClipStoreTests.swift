@@ -28,6 +28,20 @@ import Testing
         #expect(try store.recent(limit: 10).map(\.text) == ["a", "b"])
     }
 
+    @Test func promoteMovesPickedClipToTop() throws {
+        let store = try ClipStore()
+        let t0 = Date(timeIntervalSince1970: 1000)
+        let a = try store.insert(makeClip("a", at: t0), maxItems: 10)
+        _ = try store.insert(makeClip("b", at: t0.addingTimeInterval(1)), maxItems: 10)
+        _ = try store.insert(makeClip("c", at: t0.addingTimeInterval(2)), maxItems: 10)
+        try store.promote(id: #require(a.clip.id), at: t0.addingTimeInterval(3))
+        #expect(try store.count() == 3)
+        #expect(try store.recent(limit: 10).map(\.text) == ["a", "c", "b"])
+        // The search index follows the row, and results use the same ordering.
+        _ = try store.insert(makeClip("a again", at: t0.addingTimeInterval(1)), maxItems: 10)
+        #expect(try store.search("a", limit: 10).map(\.text) == ["a", "a again"])
+    }
+
     @Test func pruneKeepsPinnedAndReportsOrphanBlobs() throws {
         let store = try ClipStore()
         let t0 = Date(timeIntervalSince1970: 1000)

@@ -37,11 +37,23 @@ enum SmokeTest {
             // Build the UI objects without running the app: catches crashes in view setup.
             _ = NSApplication.shared
             MainActor.assumeIsolated {
-                let paste = PasteService(blobs: blobs)
-                let model = ClipListModel(store: store, blobs: blobs, settings: SettingsStore(), paste: paste)
+                // A private board and in-memory settings: the user's clipboard and
+                // preferences are left alone, and no ⌘V is ever simulated.
+                let board = NSPasteboard.withUniqueName()
+                defer { board.releaseGlobally() }
+                let paste = PasteService(blobs: blobs, pasteboard: board)
+                let model = ClipListModel(store: store, blobs: blobs, settings: SettingsStore(ephemeral: settings), paste: paste)
                 let panel = ClipPanelController(model: model)
                 precondition(model.items.count == 2, "panel model should see both clips")
                 precondition(!panel.isVisible)
+
+                // Picking an older clip copies it and promotes it to the top.
+                precondition(model.items.map(\.kind) == [.fileRef, .text], "newest clip should be first")
+                model.activate(model.items[1])
+                model.reload()
+                precondition(board.string(forType: .string) == "aardvark lantern clip", "picked clip should be on the pasteboard")
+                precondition(model.items.map(\.kind) == [.text, .fileRef], "picked clip should move to the top")
+                precondition(model.items.count == 2, "promotion must not duplicate the clip")
             }
             try? FileManager.default.removeItem(at: dir)
             print("smoke test passed")

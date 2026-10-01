@@ -118,6 +118,13 @@ public final class ClipStore: Sendable {
         }
     }
 
+    /// Move an existing clip to the top of the list (it was picked again).
+    public func promote(id: Int64, at date: Date = Date()) throws {
+        try dbQueue.write { db in
+            try db.execute(sql: "UPDATE clips SET createdAt = ? WHERE id = ?", arguments: [date, id])
+        }
+    }
+
     public func setPinned(id: Int64, _ pinned: Bool) throws {
         try dbQueue.write { db in
             try db.execute(sql: "UPDATE clips SET pinned = ? WHERE id = ?", arguments: [pinned, id])
