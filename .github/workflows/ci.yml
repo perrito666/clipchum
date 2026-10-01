@@ -37,3 +37,5 @@ jobs:
         run: make smoke
       - name: Build the app bundle
         run: make app
+      - name: Build the disk image
+        run: make dmg

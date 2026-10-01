@@ -5,6 +5,7 @@ CONFIG     ?= release
 BUILD_DIR  := .build/$(CONFIG)
 BUNDLE     := dist/$(APP).app
 CONTENTS   := $(BUNDLE)/Contents
+DMG        ?= dist/$(APP).dmg
 ICON_PNG   := Support/AppIcon/icon-1024.png
 INSTALL_TO ?= $(HOME)/Applications/$(APP).app
 # Ad-hoc by default. For a stable Accessibility grant across rebuilds create a
@@ -13,7 +14,7 @@ INSTALL_TO ?= $(HOME)/Applications/$(APP).app
 # Releases are signed with a Developer ID in CI (see .github/workflows/release.yml).
 SIGN_IDENTITY ?= -
 
-.PHONY: build test smoke check app install run icon toggle settings clean
+.PHONY: build test smoke check app dmg install run icon toggle settings clean
 
 build:
 	swift build -c $(CONFIG)
@@ -51,6 +52,18 @@ app: build
 	rm -rf dist/$(APP).iconset
 	codesign --force --sign "$(SIGN_IDENTITY)" --timestamp=none $(BUNDLE)
 	@echo "Built $(BUNDLE)"
+
+## A drag-to-Applications disk image of the bundle already in dist/. Deliberately
+## not dependent on `app`: the release workflow signs the bundle before imaging it.
+dmg:
+	@test -d $(BUNDLE) || { echo "No $(BUNDLE); run 'make app' first"; exit 1; }
+	rm -rf dist/dmg $(DMG)
+	mkdir -p dist/dmg
+	cp -R $(BUNDLE) dist/dmg/
+	ln -s /Applications dist/dmg/Applications
+	hdiutil create -volname $(APP) -srcfolder dist/dmg -fs HFS+ -format UDZO -ov $(DMG)
+	rm -rf dist/dmg
+	@echo "Built $(DMG)"
 
 install: app
 	mkdir -p $(dir $(INSTALL_TO))

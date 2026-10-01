@@ -66,6 +66,7 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
           IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" | awk -F'"' '/Developer ID Application/{print $2; exit}')
           test -n "$IDENTITY"
+          echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
           codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" dist/ClipChum.app
           codesign --verify --deep --strict dist/ClipChum.app
 
@@ -73,7 +74,7 @@ jobs:
         if: env.HAVE_SIGNING != 'true'
         run: codesign --force --deep --sign - dist/ClipChum.app
 
-      - name: Notarize and staple
+      - name: Notarize and staple the app, then the disk image
         if: env.HAVE_SIGNING == 'true'
         env:
           API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
@@ -83,32 +84,48 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          notarize() {
+            if [ -n "$API_KEY_P8" ]; then
+              echo "$API_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+              xcrun notarytool submit "$1" \
+                --key "$RUNNER_TEMP/AuthKey.p8" --key-id "$API_KEY_ID" \
+                --issuer "$API_ISSUER_ID" --wait
+            else
+              xcrun notarytool submit "$1" \
+                --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+                --team-id "$APPLE_TEAM_ID" --wait
+            fi
+          }
+          # The app first, so the copy inside the image carries its own ticket
+          # and still opens offline once dragged out.
           ditto -c -k --keepParent dist/ClipChum.app "$RUNNER_TEMP/notarize.zip"
-          if [ -n "$API_KEY_P8" ]; then
-            echo "$API_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
-            xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" \
-              --key "$RUNNER_TEMP/AuthKey.p8" --key-id "$API_KEY_ID" \
-              --issuer "$API_ISSUER_ID" --wait
-          else
-            xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" \
-              --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-              --team-id "$APPLE_TEAM_ID" --wait
-          fi
+          notarize "$RUNNER_TEMP/notarize.zip"
           xcrun stapler staple dist/ClipChum.app
+          DMG="ClipChum-${GITHUB_REF_NAME}.dmg"
+          make dmg DMG="$DMG"
+          codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
+          notarize "$DMG"
+          xcrun stapler staple "$DMG"
 
-      - name: Zip the bundle
+      - name: Build the disk image (no signing secrets)
+        if: env.HAVE_SIGNING != 'true'
+        run: make dmg DMG="ClipChum-${GITHUB_REF_NAME}.dmg"
+
+      - name: Zip the bundle and checksum the downloads
         # ditto preserves the bundle structure and extended attributes
         # the way Archive Utility expects.
         run: |
           ditto -c -k --keepParent dist/ClipChum.app "ClipChum-${GITHUB_REF_NAME}.zip"
-          shasum -a 256 "ClipChum-${GITHUB_REF_NAME}.zip" > "ClipChum-${GITHUB_REF_NAME}.zip.sha256"
+          for f in "ClipChum-${GITHUB_REF_NAME}.dmg" "ClipChum-${GITHUB_REF_NAME}.zip"; do
+            shasum -a 256 "$f" > "$f.sha256"
+          done
 
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ "$HAVE_SIGNING" = "true" ]; then
-            MAC_NOTE="Signed and notarized — download, unzip, move ClipChum.app to Applications and open it; it lives in the menu bar. Requires macOS 14+ on Apple Silicon."
+            MAC_NOTE="Signed and notarized — download the .dmg, open it, drag ClipChum.app to Applications and open it; it lives in the menu bar. Requires macOS 14+ on Apple Silicon."
           else
             MAC_NOTE="The app is not code-signed — on first launch, right-click ClipChum.app and choose Open (or clear quarantine with \`xattr -d com.apple.quarantine ClipChum.app\`); it lives in the menu bar. Requires macOS 14+ on Apple Silicon."
           fi
@@ -116,5 +133,7 @@ jobs:
             --title "ClipChum $GITHUB_REF_NAME" \
             --generate-notes \
             --notes "$MAC_NOTE Accessibility access is only requested if you turn on \"Paste into the active app\" in Settings." \
+            "ClipChum-${GITHUB_REF_NAME}.dmg" \
+            "ClipChum-${GITHUB_REF_NAME}.dmg.sha256" \
             "ClipChum-${GITHUB_REF_NAME}.zip" \
             "ClipChum-${GITHUB_REF_NAME}.zip.sha256"

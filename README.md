@@ -17,8 +17,9 @@ A small native clipboard manager that lives in the macOS menu bar.
 
 ## Install
 
-Grab `ClipChum-vX.Y.Z.zip` from the [releases](https://github.com/perrito666/clipchum/releases),
-unzip, move `ClipChum.app` to Applications and open it. Releases are signed and notarized when
+Grab `ClipChum-vX.Y.Z.dmg` from the [releases](https://github.com/perrito666/clipchum/releases),
+open it, drag `ClipChum.app` to Applications and open it (a `.zip` of the same bundle is
+attached too). Releases are signed and notarized when
 the signing secrets are configured (see below); otherwise right-click → Open on first launch.
 Requires macOS 14+ on Apple Silicon.
 
@@ -31,6 +32,7 @@ make run            # swift build -c release → build/ClipChum.app → ~/Applic
 make test           # swift test (core library: parser, store, ingester)
 make smoke          # build debug binary and run `ClipChum --smoke-test` against a throwaway store
 make check          # test + smoke (what CI runs)
+make app dmg        # dist/ClipChum.app, then a drag-to-Applications dist/ClipChum.dmg
 make toggle         # open/close the panel from a script (Darwin notification)
 make settings       # open the settings window from a script
 make icon           # re-render Support/AppIcon/icon-1024.png from scripts/make-icon.swift
@@ -47,8 +49,9 @@ with `make run SIGN_IDENTITY="ClipChum Dev"`.
 ## Releasing
 
 Push a `v*` tag. The release workflow builds the bundle on a macOS runner, stamps the tag
-version into `Info.plist`, signs and notarizes it when these repository secrets exist, zips it
-with `ditto`, and publishes a GitHub release with a SHA-256 sidecar:
+version into `Info.plist`, signs and notarizes it when these repository secrets exist, packs it into a
+`.dmg` (signed and notarized as well) and a `ditto` zip, and publishes a GitHub release with
+SHA-256 sidecars:
 
 | Secret | Purpose |
 |---|---|
@@ -57,7 +60,7 @@ with `ditto`, and publishes a GitHub release with a SHA-256 sidecar:
 | `APPLE_API_KEY_P8`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID` | App Store Connect API key for `notarytool` |
 
 (`APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID` work as an alternative to the API
-key.) Without the secrets the zip ships ad-hoc signed and the release notes say so.
+key.) Without the secrets the downloads ship ad-hoc signed and the release notes say so.
 
 ## Using it
 
